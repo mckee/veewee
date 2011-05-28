@@ -3,7 +3,6 @@ tune2fs -c0 -i0 -m0 /dev/os/root
 
 #Updating the box
 apt-get -y update
-apt-get -y dist-upgrade
 apt-get -y install linux-headers-$(uname -r) build-essential openssh-server ruby ruby-dev libopenssl-ruby1.8 irb ri rdoc nfs-common nfs-client dkms curl vim-nox
 apt-get clean
 

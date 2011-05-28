@@ -2,18 +2,17 @@ Veewee::Session.declare({
   :cpu_count => '1', :memory_size=> '384', 
   :disk_size => '8192', :disk_format => 'VDI', :hostiocache => 'off',
   :os_type_id => 'Ubuntu_64',
-  :iso_file => "ubuntu-10.04.2-server-amd64.iso",
-  :iso_src => "http://releases.ubuntu.com/10.04.2/ubuntu-10.04.2-server-amd64.iso",
-  :iso_md5 => "b446b36430a29f3dcf0c5eb797197cac",
+  :iso_file => "ubuntu-10.04.2-server-amd64-netboot.iso",
+  :iso_src => "http://archive.ubuntu.com/ubuntu/dists/lucid/main/installer-amd64/current/images/netboot/mini.iso",
+  :iso_md5 => "d260ca4ad6d0c81bf5cf38a63fa63b5b",
   :iso_download_timeout => "1000",
   :boot_wait => "10", :boot_cmd_sequence => [
-    '<Esc><Esc><Enter>',
-    '/install/vmlinuz noapic preseed/url=http://%IP%:%PORT%/preseed.cfg ',
+    'linux noapic preseed/url=http://%IP%:%PORT%/preseed.cfg ',
     'debian-installer=en_US auto locale=en_US kbd-chooser/method=us ',
     'hostname=os ',
     'fb=false debconf/frontend=noninteractive ',
     'console-setup/ask_detect=false console-setup/modelcode=pc105 console-setup/layoutcode=us ',
-    'initrd=/install/initrd.gz -- <Enter>'
+    'initrd=initrd.gz -- <Enter>'
   ],
   :kickstart_port => "7122", :kickstart_timeout => "10000", :kickstart_file => "preseed.cfg",
   :ssh_login_timeout => "10000", :ssh_user => "vagrant", :ssh_password => "vagrant", :ssh_key => "",

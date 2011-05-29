@@ -2,7 +2,7 @@ Veewee::Session.declare({
   :cpu_count => '1', :memory_size=> '384', 
   :disk_size => '8192', :disk_format => 'VDI', :hostiocache => 'off',
   :os_type_id => 'Ubuntu',
-  :iso_file => "ubuntu-10.04.2-server-i386-netboot.iso",
+  :iso_file => "ubuntu-10.04.x-server-i386-netboot.iso",
   :iso_src => "http://archive.ubuntu.com/ubuntu/dists/lucid/main/installer-i386/current/images/netboot/mini.iso",
   :iso_md5 => "d260ca4ad6d0c81bf5cf38a63fa63b5b",
   :iso_download_timeout => "1000",

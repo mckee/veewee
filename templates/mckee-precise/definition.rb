@@ -17,7 +17,7 @@ Veewee::Session.declare({
     'hostname=%NAME% ',
     'fb=false debconf/frontend=noninteractive ',
     'keyboard-configuration/layout=USA keyboard-configuration/variant=USA console-setup/ask_detect=false ',
-    'initrd=/install/initrd.gz -- <Enter>'
+    'initrd=/initrd.gz -- <Enter>'
 ],
   :kickstart_port => "7122",
   :kickstart_timeout => "10000",

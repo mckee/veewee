@@ -1,4 +1,6 @@
-# postinstall.sh created from litchell's official lucid32/64 baseboxes
+
+#filesystem tweaks
+tune2fs -c0 -i0 -m0 /dev/os/root
 
 date > /etc/vagrant_box_build_time
 
@@ -11,15 +13,13 @@ EOF
 wget http://apt.puppetlabs.com/pubkey.gpg -O - | sudo apt-key add -
 apt-get -y update
 apt-get -y dist-upgrade
-apt-get -y install linux-headers-$(uname -r) build-essential zlib1g-dev libssl-dev libreadline-gplv2-dev vim puppet dkms nfs-common rubygems
+apt-get -y install linux-headers-$(uname -r) build-essential zlib1g-dev libssl-dev libreadline-gplv2-dev vim puppet dkms nfs-common rubygems curl vim-nox
 apt-get clean
 
 gem install chef --no-rdoc --no-ri 
 
 # Installing the virtualbox guest additions
 VBOX_VERSION=$(cat /home/vagrant/.vbox_version)
-cd /tmp
-wget http://download.virtualbox.org/virtualbox/$VBOX_VERSION/VBoxGuestAdditions_$VBOX_VERSION.iso
 mount -o loop VBoxGuestAdditions_$VBOX_VERSION.iso /mnt
 sh /mnt/VBoxLinuxAdditions.run
 umount /mnt

@@ -4,14 +4,15 @@ tune2fs -c0 -i0 -m0 /dev/os/root
 
 date > /etc/vagrant_box_build_time
 
-
-# Apt-install various things necessary for Ruby, guest additions,
-# etc., and remove optional things to trim down the machine.
+# package modifications
 cat > /etc/apt/sources.list.d/puppetlabs.list <<EOF
 deb http://apt.puppetlabs.com/ precise main 
 EOF
 wget http://apt.puppetlabs.com/pubkey.gpg -O - | sudo apt-key add -
 apt-get -y update
+apt-get -y remove virtualbox-*
+apt-get -y autoremove
+echo virtualbox-guest-dkms hold | dpkg --set-selections
 apt-get -y dist-upgrade
 apt-get -y install linux-headers-$(uname -r) build-essential zlib1g-dev libssl-dev libreadline-gplv2-dev vim puppet dkms nfs-common rubygems curl vim-nox
 apt-get clean

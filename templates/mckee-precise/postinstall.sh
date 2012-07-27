@@ -10,12 +10,12 @@ deb http://apt.puppetlabs.com/ precise main
 EOF
 wget http://apt.puppetlabs.com/pubkey.gpg -O - | sudo apt-key add -
 apt-get -y update
-apt-get -y remove virtualbox-*
-apt-get -y autoremove
-echo virtualbox-guest-dkms hold | dpkg --set-selections
 apt-get -y dist-upgrade
 apt-get -y install linux-headers-$(uname -r) build-essential zlib1g-dev libssl-dev libreadline-gplv2-dev vim puppet dkms nfs-common rubygems curl vim-nox
+apt-get -y remove virtualbox-guest-source virtualbox-guest-utils virtualbox-ose-guest-utils virtualbox-guest-dkms
+apt-get -y autoremove
 apt-get clean
+echo virtualbox-guest-dkms hold | dpkg --set-selections
 
 gem install chef --no-rdoc --no-ri 
 

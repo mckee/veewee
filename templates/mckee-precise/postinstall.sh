@@ -10,22 +10,30 @@ deb http://apt.puppetlabs.com/ precise main
 EOF
 wget http://apt.puppetlabs.com/pubkey.gpg -O - | sudo apt-key add -
 apt-get -y update
-apt-get -y remove virtualbox-*
-apt-get -y autoremove
-echo virtualbox-guest-dkms hold | dpkg --set-selections
-apt-get -y dist-upgrade
 apt-get -y install linux-headers-$(uname -r) build-essential zlib1g-dev libssl-dev libreadline-gplv2-dev vim puppet dkms nfs-common rubygems curl vim-nox
-apt-get clean
-
-gem install chef --no-rdoc --no-ri 
 
 # Installing the virtualbox guest additions
 VBOX_VERSION=$(cat /home/vagrant/.vbox_version)
 mount -o loop VBoxGuestAdditions_$VBOX_VERSION.iso /mnt
 sh /mnt/VBoxLinuxAdditions.run
 umount /mnt
-
 rm VBoxGuestAdditions_$VBOX_VERSION.iso
+
+# Full upgrade, but don't use the packaged guest additions as they are old.
+echo virtualbox-guest-dkms hold | dpkg --set-selections
+apt-get -y dist-upgrade
+
+# install the guest additions kernel modules
+NEW_KERNEL=$(ls /boot/vmlinuz* | tail -1 | sed 's/.*vmlinuz-//')
+dkms autoinstall $NEW_KERNEL
+INSTALL_KERNEL=$(uname -r)
+apt-get -y purge linux-image-${INSTALL_KERNEL} linux-headers-${INSTALL_KERNEL}
+update-initramfs -ck all
+update-grub2
+apt-get clean
+
+# Chef
+gem install chef --no-rdoc --no-ri 
 
 # Setup sudo to allow no-password sudo for "admin"
 groupadd -r admin

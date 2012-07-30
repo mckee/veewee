@@ -26,6 +26,8 @@ apt-get -y dist-upgrade
 # install the guest additions kernel modules
 NEW_KERNEL=$(ls /boot/vmlinuz* | tail -1 | sed 's/.*vmlinuz-//')
 dkms autoinstall $NEW_KERNEL
+
+# clean up
 INSTALL_KERNEL=$(uname -r)
 apt-get -y purge linux-image-${INSTALL_KERNEL} linux-headers-${INSTALL_KERNEL}
 update-initramfs -ck all

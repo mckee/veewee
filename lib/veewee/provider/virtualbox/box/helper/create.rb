@@ -66,11 +66,11 @@ module Veewee
 
 
         def create_disk
-            ui.info "Creating new harddrive of size #{definition.disk_size.to_i} "
+            ui.info "Creating new harddrive of size #{definition.disk_size.to_i}, format #{definition.disk_format}, variant #{definition.disk_variant} "
 
 
             place=get_vbox_home
-            command ="#{@vboxcmd} createhd --filename \"#{File.join(place,name,name+"."+definition.disk_format.downcase)}\" --size \"#{definition.disk_size.to_i}\" --format #{definition.disk_format.downcase}"
+            command ="#{@vboxcmd} createhd --filename \"#{File.join(place,name,name+"."+definition.disk_format.downcase)}\" --size \"#{definition.disk_size.to_i}\" --format #{definition.disk_format.downcase} --variant #{definition.disk_variant.downcase}"
             shell_exec("#{command}")
 
         end
@@ -98,7 +98,7 @@ module Veewee
         end
 
         def attach_guest_additions
-          full_iso_file=File.join(env.config.veewee.iso_dir,"VBoxGuestAdditions_#{self.vbox_version}.iso")
+          full_iso_file=File.join(env.config.veewee.iso_dir,"VBoxGuestAdditions_#{self.vboxga_version}.iso")
           ui.info "Mounting guest additions: #{full_iso_file}"
           command ="#{@vboxcmd} storageattach \"#{name}\" --storagectl \"IDE Controller\" --type dvddrive --port 1 --device 0 --medium \"#{full_iso_file}\""
           shell_exec("#{command}")
@@ -158,7 +158,7 @@ module Veewee
             if definition.instance_variable_defined?("@#{vm_flag}")
               vm_flag_value=definition.instance_variable_get("@#{vm_flag}")
               ui.info "Setting VM Flag #{vm_flag} to #{vm_flag_value}"
-              ui.warn "Used of #{vm_flag} is deprecated - specify your options in :virtualbox => { : vm_options => [\"#{vm_flag}\" => \"#{vm_flag_value}\"]}"
+              ui.warn "Used of #{vm_flag} is deprecated - specify your options in the definition file as \n :virtualbox => { :vm_options => [\"#{vm_flag}\" => \"#{vm_flag_value}\"]}"
               command="#{@vboxcmd} modifyvm #{name} --#{vm_flag.to_s} #{vm_flag_value}"
               shell_exec("#{command}")
             end

@@ -8,7 +8,15 @@ source "http://rubygems.org"
 #gem "veewee", :path => "."
 #gem "fission", :path => '/Users/patrick/dev/fission'
 
+group :kvm do
+  gem "ruby-libvirt"
+end
+
 group :test do
   gem "rake"
+  gem "em-winrm", :git => 'http://github.com/hh/em-winrm.git', :ref => '31745601d3'
+  gem "vagrant"
+  #gem "chef"
+  #gem "knife-windows"
 end
 gemspec

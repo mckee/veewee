@@ -5,6 +5,7 @@ require 'veewee/provider/core/helper/tcp'
 require 'veewee/provider/vmfusion/box/helper/status'
 require 'veewee/provider/vmfusion/box/helper/ip'
 require 'veewee/provider/vmfusion/box/helper/ssh_options'
+require 'veewee/provider/vmfusion/box/helper/winrm_options'
 require 'veewee/provider/vmfusion/box/helper/vnc'
 require 'veewee/provider/vmfusion/box/helper/console_type'
 require 'veewee/provider/vmfusion/box/helper/buildinfo'
@@ -18,7 +19,8 @@ require 'veewee/provider/vmfusion/box/destroy'
 require 'veewee/provider/vmfusion/box/ssh'
 require 'veewee/provider/vmfusion/box/template'
 require 'veewee/provider/vmfusion/box/validate_vmfusion'
-require 'veewee/provider/vmfusion/box/export_ova'
+require 'veewee/provider/vmfusion/box/export'
+require 'veewee/provider/vmfusion/box/add_share'
 
 
 module Veewee

@@ -9,9 +9,9 @@ module Veewee
           shell_exec("#{command}")
         end
 
-        def add_sata_controller
+        def add_sata_controller 
           #unless => "${vboxcmd} showvminfo \"${vname}\" | grep \"SATA Controller\" ";
-          command ="#{@vboxcmd} storagectl \"#{name}\" --name \"SATA Controller\" --add sata --hostiocache #{definition.hostiocache} --sataportcount 1"
+          command ="#{@vboxcmd} storagectl \"#{name}\" --name \"SATA Controller\" --add sata --hostiocache #{definition.hostiocache} --sataportcount #{definition.disk_count}"
           shell_exec("#{command}")
         end
 
@@ -25,9 +25,22 @@ module Veewee
         def add_ssh_nat_mapping
 
           unless definition.nil?
+            unless definition.skip_nat_mapping == true
+              #Map SSH Ports
+              command="#{@vboxcmd} modifyvm \"#{name}\" --natpf#{self.natinterface} \"guestssh,tcp,,#{definition.ssh_host_port},,#{definition.ssh_guest_port}\""
+              shell_exec("#{command}")
+            end
+          end
+        end
+
+        def add_winrm_nat_mapping
+
+          unless definition.nil?
             #Map SSH Ports
-            command="#{@vboxcmd} modifyvm \"#{name}\" --natpf#{self.natinterface} \"guestssh,tcp,,#{definition.ssh_host_port},,#{definition.ssh_guest_port}\""
-            shell_exec("#{command}")
+            unless definition.skip_nat_mapping == true
+              command="#{@vboxcmd} modifyvm \"#{name}\" --natpf1 'guestwinrm,tcp,,#{definition.winrm_host_port},,#{definition.winrm_guest_port}'"
+              shell_exec("#{command}")
+            end
           end
         end
 
@@ -66,34 +79,42 @@ module Veewee
 
 
         def create_disk
-            ui.info "Creating new harddrive of size #{definition.disk_size.to_i}, format #{definition.disk_format}, variant #{definition.disk_variant} "
-
-
             place=get_vbox_home
-            command ="#{@vboxcmd} createhd --filename \"#{File.join(place,name,name+"."+definition.disk_format.downcase)}\" --size \"#{definition.disk_size.to_i}\" --format #{definition.disk_format.downcase} --variant #{definition.disk_variant.downcase}"
-            shell_exec("#{command}")
-
+            1.upto(definition.disk_count.to_i) do |f|
+              ui.info "Creating new harddrive of size #{definition.disk_size.to_i}, format #{definition.disk_format}, variant #{definition.disk_variant} "
+              command ="#{@vboxcmd} createhd --filename \"#{File.join(place,name,name+"#{f}."+definition.disk_format.downcase)}\" --size \"#{definition.disk_size.to_i}\" --format #{definition.disk_format.downcase} --variant #{definition.disk_variant.downcase}"
+              shell_exec("#{command}")
+            end
         end
 
-        def attach_disk
-
+        def attach_disk_common(storagectl, device_number)
           place=get_vbox_home
-          location=name+"."+definition.disk_format.downcase
+          
+          1.upto(definition.disk_count.to_i) do |f|
+            location=name+"#{f}."+definition.disk_format.downcase
+  
+            location="#{File.join(place,name,location)}"
+            ui.info "Attaching disk: #{location}"
+  
+            #command => "${vboxcmd} storageattach \"${vname}\" --storagectl \"SATA Controller\" --port 0 --device 0 --type hdd --medium \"${vname}.vdi\"",
+            command ="#{@vboxcmd} storageattach \"#{name}\" --storagectl \"#{storagectl}\" --port #{f-1} --device #{device_number} --type hdd --medium \"#{location}\""
+            shell_exec("#{command}")
+          end
+        end
 
-          location="#{File.join(place,name,location)}"
-          ui.info "Attaching disk: #{location}"
+        def attach_disk_ide(device_number=0)
+          self.attach_disk_common("IDE Controller", device_number)
+        end
 
-          #command => "${vboxcmd} storageattach \"${vname}\" --storagectl \"SATA Controller\" --port 0 --device 0 --type hdd --medium \"${vname}.vdi\"",
-          command ="#{@vboxcmd} storageattach \"#{name}\" --storagectl \"SATA Controller\" --port 0 --device 0 --type hdd --medium \"#{location}\""
-          shell_exec("#{command}")
-
+        def attach_disk_sata(device_number=0)
+          self.attach_disk_common("SATA Controller", device_number)
         end
 
 
-        def attach_isofile
+        def attach_isofile(device_number=0)
           full_iso_file=File.join(env.config.veewee.iso_dir,definition.iso_file)
           ui.info "Mounting cdrom: #{full_iso_file}"
-          command ="#{@vboxcmd} storageattach \"#{name}\" --storagectl \"IDE Controller\" --type dvddrive --port 0 --device 0 --medium \"#{full_iso_file}\""
+          command ="#{@vboxcmd} storageattach \"#{name}\" --storagectl \"IDE Controller\" --type dvddrive --port 0 --device #{device_number} --medium \"#{full_iso_file}\""
           shell_exec("#{command}")
         end
 
@@ -145,6 +166,10 @@ module Veewee
 
           #setting memory size
           command="#{@vboxcmd} modifyvm \"#{name}\" --memory #{definition.memory_size}"
+          shell_exec("#{command}")
+
+          #setting video memory size
+          command="#{@vboxcmd} modifyvm \"#{name}\" --vram #{definition.video_memory_size}"
           shell_exec("#{command}")
 
           #setting bootorder

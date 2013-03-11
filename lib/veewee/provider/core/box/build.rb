@@ -5,6 +5,10 @@ module Veewee
 
         def build(options={})
 
+          if definition.nil?
+            raise Veewee::Error,"Could not find the definition. Make sure you are one level above the definitions directory when you execute the build command."
+          end
+
           # Requires valid definition
 
           ui.info "Building Box #{name} with Definition #{definition.name}:"
@@ -62,7 +66,7 @@ module Veewee
           })
 
           # Type the boot sequence
-          self.console_type(boot_sequence)
+          Thread.new { self.console_type(boot_sequence) }
 
           self.handle_kickstart(options)
 
@@ -74,16 +78,27 @@ module Veewee
             sleep 2
           end
 
-          self.transfer_buildinfo(options)
+
+          if ! definition.skip_iso_transfer then
+            self.transfer_buildinfo(options)
+          end
+
+          # Transfer the VEEWEE_<params> environment variables + definition.params
+          # into .veewee_params
+          self.transfer_params(options)
 
           # Filtering post install files based upon --postinstall-include and --postinstall--exclude
           definition.postinstall_files=filter_postinstall_files(options)
 
           self.handle_postinstall(options)
 
-          ui.success "The box #{name} was built succesfully!"
+          ui.success "The box #{name} was built successfully!"
           ui.info "You can now login to the box with:"
-          ui.info ssh_command_string
+          if (definition.winrm_user && definition.winrm_password)
+            env.ui.info winrm_command_string
+          else
+            env.ui.info ssh_command_string
+          end
 
           return self
         end
@@ -165,10 +180,10 @@ module Veewee
           kickstartfiles=definition.kickstart_file
 
           if kickstartfiles.nil? || kickstartfiles.length == 0
-            ui.info "Skipping webserver as no kickstartfile was specified"
+            env.ui.info "Skipping webserver as no kickstartfile was specified"
+          else
+            env.ui.info "Starting a webserver #{definition.kickstart_ip}:#{definition.kickstart_port}\n"
           end
-
-          ui.info "Starting a webserver #{definition.kickstart_ip}:#{definition.kickstart_port}\n"
 
           # Check if the kickstart is an array or a single string
           if kickstartfiles.is_a?(String)
@@ -197,17 +212,23 @@ module Veewee
           definition.postinstall_files.each do |postinstall_file|
             # Filenames of postinstall_files are relative to their definition
             filename=File.join(definition.path,postinstall_file)
-            self.scp(filename,File.basename(filename))
-            self.exec("chmod +x \"#{File.basename(filename)}\"")
+            self.copy_to_box(filename,File.basename(filename))
+            if not (definition.winrm_user && definition.winrm_password)
+              self.exec("chmod +x \"#{File.basename(filename)}\"")
+            end
           end
 
           # Prepare a pre_poinstall file if needed (not nil , or not empty)
           unless definition.pre_postinstall_file.to_s.empty?
             pre_filename=File.join(definition.path, definition.pre_postinstall_file)
-            self.scp(pre_filename,File.basename(pre_filename))
-            self.exec("chmod +x \"#{File.basename(pre_filename)}\"")
-            # Inject the call to the real script by executing the first argument (it will be the postinstall script file name to be executed)
-            self.exec("execute=\"\\n# We must execute the script passed as the first argument\\n\\$1\" && printf \"%b\\n\" \"$execute\" >> #{File.basename(pre_filename)}")
+            self.copy_to_box(filename,File.basename(pre_filename))
+            if (definition.winrm_user && definition.winrm_password)
+              # not implemented on windows yet
+            else
+              self.exec("chmod +x \"#{File.basename(pre_filename)}\"")
+              # Inject the call to the real script by executing the first argument (it will be the postinstall script file name to be executed)
+              self.exec("execute=\"\\n# We must execute the script passed as the first argument\\n\\$1\" && printf \"%b\\n\" \"$execute\" >> #{File.basename(pre_filename)}")
+            end
           end
 
           # Now iterate over the postinstall files
@@ -218,14 +239,19 @@ module Veewee
             unless File.basename(postinstall_file).start_with?("_")
 
               unless definition.pre_postinstall_file.to_s.empty?
+                raise 'not implemented on windows yet' if (definition.winrm_user && definition.winrm_password)
                 # Filename of pre_postinstall_file are relative to their definition
                 pre_filename=File.join(definition.path, definition.pre_postinstall_file)
                 # Upload the pre postinstall script if not already transfered
                 command = "./" + File.basename(pre_filename)
                 command = sudo(command) + " ./"+File.basename(filename)
               else
-                command = "./"+File.basename(filename)
-                command = sudo(command)
+                if (definition.winrm_user && definition.winrm_password)
+                  # no sudo on windows, batch files only please?
+                  self.exec(File.basename(filename))
+                else
+                  self.exec(sudo("./"+File.basename(filename)))
+                end
               end
 
               self.exec(command)
@@ -249,7 +275,7 @@ module Veewee
               infofile.puts "#{info[:content]}"
               infofile.rewind
               infofile.close
-              self.scp(infofile.path,info[:filename])
+              self.copy_to_box(infofile.path,info[:filename])
               infofile.delete
             rescue RuntimeError => ex
               ui.error("Error transfering file #{info[:filename]} failed, possible not enough permissions to write? #{ex}",:prefix => false)
@@ -258,6 +284,41 @@ module Veewee
           end
         end
 
+        def transfer_params(options)
+          filename = ".veewee_params"
+          content = ""
+
+          params = {}
+
+          # First check params in definition
+          params.merge!(definition.params) unless definition.params.nil?
+
+          # Environment vars override
+          veewee_env = ENV.select{|key,value| key.to_s.match(/^VEEWEE_/) }
+          veewee_env.each do |key,value|
+            params[key.gsub(/^VEEWEE_/,'')] = value
+          end
+
+          # Iterate over params
+          params.each do |key,value|
+            content += "export #{key}='#{value}'\n"
+          end
+
+          begin
+            infofile=Tempfile.open("#{filename}")
+            # Force binary mode to prevent windows from putting CR-LF end line style
+            # http://www.ruby-forum.com/topic/127453#568546
+            infofile.binmode
+            infofile.puts "#{content}"
+            infofile.rewind
+            infofile.close
+            self.copy_to_box(infofile.path,filename)
+            infofile.delete
+          rescue RuntimeError => ex
+            ui.error("Error transfering file #{filename} failed, possible not enough permissions to write? #{ex}",:prefix => false)
+            raise Veewee::Error,"Error transfering file #{filename} failed, possible not enough permissions to write? #{ex}"
+          end
+        end
 
       end #Module
     end #Module

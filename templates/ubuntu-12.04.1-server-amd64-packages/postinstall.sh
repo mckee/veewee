@@ -21,13 +21,15 @@ sh /mnt/VBoxLinuxAdditions.run
 umount /mnt
 
 rm VBoxGuestAdditions_$VBOX_VERSION.iso
+rm /home/vagrant/VBoxGuestAdditions_$VBOX_VERSION.iso
 
-# Setup sudo to allow no-password sudo for "admin"
-groupadd -r admin
-usermod -a -G admin vagrant
+# Setup sudo to allow no-password sudo for "sudo"
+usermod -a -G sudo vagrant
 cp /etc/sudoers /etc/sudoers.orig
-sed -i -e '/Defaults\s\+env_reset/a Defaults\texempt_group=admin' /etc/sudoers
-sed -i -e 's/%admin ALL=(ALL) ALL/%admin ALL=NOPASSWD:ALL/g' /etc/sudoers
+sed -i -e 's/%sudo\tALL=(ALL:ALL) ALL/%sudo\tALL=(ALL:ALL) NOPASSWD: ALL/' /etc/sudoers
+
+# Add puppet user and group
+adduser --system --group --home /var/lib/puppet puppet
 
 # Install NFS client
 apt-get -y install nfs-common
@@ -57,7 +59,7 @@ rm -f /EMPTY
 
 # Removing leftover leases and persistent rules
 echo "cleaning up dhcp leases"
-rm /var/lib/dhcp3/*
+rm /var/lib/dhcp/*
 
 # Make sure Udev doesn't block our network
 # http://6.ptmc.org/?p=164

@@ -1,5 +1,7 @@
+# fix hostname
+sed -i 's/^127\.0\.1\.1.*$/127.0.1.1      precise.lab.tibre.org precise/' /etc/hosts
 
-#filesystem tweaks
+# filesystem tweaks
 tune2fs -c0 -i0 -m0 /dev/os/root
 
 date > /etc/vagrant_box_build_time

@@ -221,7 +221,7 @@ module Veewee
           # Prepare a pre_poinstall file if needed (not nil , or not empty)
           unless definition.pre_postinstall_file.to_s.empty?
             pre_filename=File.join(definition.path, definition.pre_postinstall_file)
-            self.copy_to_box(filename,File.basename(pre_filename))
+            self.copy_to_box(pre_filename,File.basename(pre_filename))
             if (definition.winrm_user && definition.winrm_password)
               # not implemented on windows yet
             else
@@ -245,6 +245,8 @@ module Veewee
                 # Upload the pre postinstall script if not already transfered
                 command = "./" + File.basename(pre_filename)
                 command = sudo(command) + " ./"+File.basename(filename)
+
+                self.exec(command)
               else
                 if (definition.winrm_user && definition.winrm_password)
                   # no sudo on windows, batch files only please?
@@ -253,8 +255,6 @@ module Veewee
                   self.exec(sudo("./"+File.basename(filename)))
                 end
               end
-
-              self.exec(command)
 
             else
               env.logger.info "Skipping postinstallfile #{postinstall_file}"
